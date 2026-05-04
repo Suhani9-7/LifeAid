@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: lifeaid_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: lifeaid
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: ./lifeaid_backend
+    container_name: lifeaid_backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./lifeaid_backend:/app
+      - ./lifeaid_backend/media:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./lifeaid_backend/.env
+    environment:
+      - DB_HOST=db
+      - DB_NAME=lifeaid
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_PORT=3306
+    depends_on:
+      - db
+
+  frontend:
+    build: ./LifeAid Frontend
+    container_name: lifeaid_frontend
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
