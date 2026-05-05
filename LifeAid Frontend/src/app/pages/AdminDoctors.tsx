@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Badge } from '../components/ui/badge'
 import { Skeleton } from '../components/ui/skeleton'
-import { fetchAdminUsers, approveUser, type AuthUser, API_BASE_URL } from '../lib/api'
+import { fetchAdminUsers, approveUser, API_BASE_URL } from '../lib/api'
+import { type AuthUser } from '../lib/auth'
 import { toast } from 'sonner'
 
 export default function AdminDoctors() {

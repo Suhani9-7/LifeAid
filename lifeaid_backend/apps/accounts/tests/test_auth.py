@@ -23,6 +23,26 @@ class AuthTests(APITestCase):
         self.assertEqual(CustomUser.objects.count(), 1)
         self.assertEqual(CustomUser.objects.get().email, "testuser@lifeaid.org")
 
+    def test_registration_rejects_phone_number_longer_than_10_digits(self):
+        data = self.user_data.copy()
+        data["phone_number"] = "12345678901"
+
+        response = self.client.post(self.register_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("phone_number", response.data)
+        self.assertEqual(CustomUser.objects.count(), 0)
+
+    def test_registration_rejects_non_digit_phone_number(self):
+        data = self.user_data.copy()
+        data["phone_number"] = "12345abc90"
+
+        response = self.client.post(self.register_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("phone_number", response.data)
+        self.assertEqual(CustomUser.objects.count(), 0)
+
     def test_login(self):
         # Register user first
         self.client.post(self.register_url, self.user_data)

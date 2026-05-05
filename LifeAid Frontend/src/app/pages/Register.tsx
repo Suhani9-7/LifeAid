@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { HeartPulse, ArrowLeft, User, Mail, Phone, Lock } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -26,10 +26,21 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (!/^\d{10}$/.test(formData.phone)) {
+      setError('Phone number must contain exactly 10 digits.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      let session = await register({
+      const session = await register({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -38,11 +49,6 @@ export default function Register() {
         role: formData.role as 'patient' | 'doctor' | 'donor' | 'organization'
       });
       
-      if (!session || !session.access) {
-        console.log('No tokens returned, attempting auto-login...');
-        session = await login(formData.email, formData.password);
-      }
-
       if (!session || !session.access) {
         throw new Error('Registration successful but no authentication token was returned.');
       }
@@ -67,6 +73,10 @@ export default function Register() {
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePhoneChange = (value: string) => {
+    handleChange('phone', value.replace(/\D/g, '').slice(0, 10));
   };
 
   return (
@@ -129,9 +139,12 @@ export default function Register() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="Enter your phone number"
+                    inputMode="numeric"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    placeholder="Enter 10-digit phone number"
                     value={formData.phone}
-                    onChange={(e) => handleChange('phone', e.target.value)}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
                     className="pl-10 bg-input-background"
                     required
                   />

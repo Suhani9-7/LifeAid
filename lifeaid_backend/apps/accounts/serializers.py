@@ -48,6 +48,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     confirm_password = serializers.CharField(write_only=True)
+    phone_number = serializers.RegexField(
+        regex=r"^\d{10}$",
+        error_messages={"invalid": "Phone number must contain exactly 10 digits."},
+    )
     license_number = serializers.CharField(required=False, write_only=True)
     license_document = serializers.FileField(required=False, write_only=True)
     specialization = serializers.CharField(required=False, write_only=True)
@@ -122,6 +126,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
+    phone_number = serializers.RegexField(
+        regex=r"^\d{10}$",
+        required=False,
+        allow_blank=True,
+        error_messages={"invalid": "Phone number must contain exactly 10 digits."},
+    )
+
     class Meta:
         model = User
         fields = ["first_name", "last_name", "phone_number", "profile_picture", "address"]
