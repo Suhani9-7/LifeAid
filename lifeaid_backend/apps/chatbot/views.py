@@ -75,7 +75,7 @@ def chatbot_message(request):
         
         try:
             response = client.models.generate_content(
-                model='gemini-2.5-flash-lite',
+                model='gemini-2.0-flash-lite',
                 contents=user_message,
                 config=genai.types.GenerateContentConfig(
                     max_output_tokens=500,
@@ -86,7 +86,7 @@ def chatbot_message(request):
         except:
             # Try fallback model
             response = client.models.generate_content(
-                model='gemini-flash-lite-latest',
+                model='gemini-1.5-flash',
                 contents=user_message,
                 config=genai.types.GenerateContentConfig(
                     max_output_tokens=500,
