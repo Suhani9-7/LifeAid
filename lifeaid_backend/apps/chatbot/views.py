@@ -75,7 +75,7 @@ def chatbot_message(request):
         
         try:
             response = client.models.generate_content(
-                model='gemini-2.0-flash-lite',
+                model='gemini-flash-latest',
                 contents=user_message,
                 config=genai.types.GenerateContentConfig(
                     max_output_tokens=500,
@@ -83,17 +83,20 @@ def chatbot_message(request):
                     system_instruction=system_prompt,
                 ),
             )
-        except:
-            # Try fallback model
-            response = client.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=user_message,
-                config=genai.types.GenerateContentConfig(
-                    max_output_tokens=500,
-                    temperature=0.7,
-                    system_instruction=system_prompt,
-                ),
-            )
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Gemini API Error: {error_msg}")
+            
+            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                return JsonResponse({
+                    'reply': "I'm a bit overwhelmed with requests right now. Please try again in a moment.",
+                    'status': 'error',
+                }, status=429)
+            
+            return JsonResponse({
+                'reply': "I'm having trouble processing that right now. Please try again later.",
+                'status': 'error',
+            }, status=500)
         
         bot_reply = response.text if hasattr(response, 'text') and response.text else "I'm not sure how to respond."
         if len(bot_reply) > 2000:
