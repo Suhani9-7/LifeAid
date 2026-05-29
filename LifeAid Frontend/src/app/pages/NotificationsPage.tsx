@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { useNavigate } from 'react-router'
 import { ArrowLeft, Bell, Mail, MessageSquare } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -8,6 +8,7 @@ import { getAuthSession, getRoleHomePath } from '../lib/auth'
 import { toast } from 'sonner'
 
 export default function NotificationsPage() {
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const session = getAuthSession()
@@ -44,10 +45,14 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link to={homePath} className="mb-6 inline-flex items-center gap-2 text-primary hover:text-primary/80">
-          <ArrowLeft className="h-4 w-4" />
-          Back to dashboard
-        </Link>
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 -ml-2 text-muted-foreground hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Notifications</h1>

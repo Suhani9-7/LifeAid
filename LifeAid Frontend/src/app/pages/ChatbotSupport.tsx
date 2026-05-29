@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Search, MessageCircle, HelpCircle, Send } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { Search, MessageCircle, HelpCircle, Send, ArrowLeft } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -26,6 +27,7 @@ interface ChatMessage {
 }
 
 export default function ChatbotSupport() {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'bot', content: 'Hello! How can I assist you with donations, cases, or account setup today?' }
   ])
@@ -60,6 +62,15 @@ export default function ChatbotSupport() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 -ml-2 text-muted-foreground hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Support & FAQ Assistant</h1>
           <p className="text-muted-foreground mt-2">Get help with common questions or use the chatbot assistant.</p>

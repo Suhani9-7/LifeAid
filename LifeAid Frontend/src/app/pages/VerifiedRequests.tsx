@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
-import { Search, Filter, RotateCcw } from 'lucide-react'
+import { Link, useNavigate } from 'react-router'
+import { Search, Filter, RotateCcw, ArrowLeft } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -9,6 +9,7 @@ import { Skeleton } from '../components/ui/skeleton'
 import { fetchPublicRequests, type MedicalCase } from '../lib/api'
 
 export default function VerifiedRequests() {
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   
   const [location, setLocation] = useState('')
@@ -66,6 +67,14 @@ export default function VerifiedRequests() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 -ml-2 text-muted-foreground hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Verified Requests</h1>
           <p className="text-muted-foreground mt-2">Browse verified donation requests by location, illness, and urgency.</p>

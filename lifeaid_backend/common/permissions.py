@@ -17,6 +17,8 @@ class IsDoctor(IsRole):
 
 
 class IsApprovedDoctor(BasePermission):
+    message = "Unauthorized: Only approved doctors can verify requests."
+
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False

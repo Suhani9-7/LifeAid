@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { HeartPulse, Upload, FileText, CheckCircle, AlertCircle, Award, Building2, Loader2, ArrowRight } from 'lucide-react';
+import { HeartPulse, Upload, FileText, CheckCircle, AlertCircle, Award, Building2, Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -80,6 +80,15 @@ export default function DoctorOnboarding() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
       <div className="max-w-3xl w-full">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 -ml-2 text-muted-foreground hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">

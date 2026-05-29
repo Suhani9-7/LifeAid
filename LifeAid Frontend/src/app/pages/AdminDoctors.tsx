@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { useNavigate } from 'react-router'
 import { ShieldCheck, ArrowLeft, Search, UserCheck, UserX, Loader2 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -11,6 +11,7 @@ import { type AuthUser } from '../lib/auth'
 import { toast } from 'sonner'
 
 export default function AdminDoctors() {
+  const navigate = useNavigate()
   const [doctors, setDoctors] = useState<AuthUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -83,10 +84,14 @@ export default function AdminDoctors() {
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <Link to="/admin-dashboard" className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Dashboard</span>
-          </Link>
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="mb-6 -ml-2 text-muted-foreground hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-2 rounded-lg">
               <ShieldCheck className="h-6 w-6 text-primary" />

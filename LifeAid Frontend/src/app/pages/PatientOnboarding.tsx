@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { HeartPulse, Upload, FileText, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
+import { HeartPulse, Upload, FileText, DollarSign, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -16,6 +16,7 @@ export default function PatientOnboarding() {
   const [formData, setFormData] = useState({
     diagnosis: '',
     description: '',
+    location: '',
     targetAmount: '',
     category: '',
     medicalDocuments: [] as File[]
@@ -47,13 +48,21 @@ export default function PatientOnboarding() {
     }
 
     const user = getCurrentUser();
+    
+    if (formData.medicalDocuments.length === 0) {
+      alert('Please upload at least one medical document.');
+      setStep(1);
+      return;
+    }
+
     const payload = new FormData();
     payload.append('title', formData.diagnosis);
     payload.append('description', formData.description);
     payload.append('illness_type', formData.category);
     payload.append('amount_required', formData.targetAmount);
-    payload.append('location', user?.address || 'Location not provided');
+    payload.append('location', formData.location || 'Location not provided');
     payload.append('urgency', 'high');
+    payload.append('document', formData.medicalDocuments[0]);
     
     try {
       const response = await createPatientRequest(payload);
@@ -71,6 +80,15 @@ export default function PatientOnboarding() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
       <div className="max-w-3xl w-full">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 -ml-2 text-muted-foreground hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -133,6 +151,18 @@ export default function PatientOnboarding() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="location">Your Location *</Label>
+                    <Input
+                      id="location"
+                      placeholder="E.g., Mumbai, Maharashtra or City, Country"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      className="bg-input-background"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="description">Medical Condition Description *</Label>
                     <Textarea
                       id="description"
@@ -145,6 +175,43 @@ export default function PatientOnboarding() {
                     <p className="text-xs text-muted-foreground">
                       Be as detailed as possible to help doctors verify your case
                     </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="medicalDocuments">Upload Medical Documents (Reports, Bills) *</Label>
+                    <div className="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('medicalDocuments')?.click()}
+                        className="w-full h-24 border-dashed border-2 flex flex-col gap-2"
+                      >
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm">
+                          {formData.medicalDocuments.length > 0 
+                            ? `${formData.medicalDocuments.length} file(s) selected` 
+                            : 'Click to upload medical documents'}
+                        </span>
+                      </Button>
+                      <input
+                        id="medicalDocuments"
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileChange}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
+                    </div>
+                    {formData.medicalDocuments.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {formData.medicalDocuments.map((file, index) => (
+                          <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <FileText className="h-3 w-3" />
+                            <span>{file.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -173,7 +240,7 @@ export default function PatientOnboarding() {
                         value={formData.targetAmount}
                         onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
                         className="pl-10 bg-input-background"
-                        min="1"
+                        min="1000"
                         required
                       />
                     </div>

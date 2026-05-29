@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
+import { ArrowLeft } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -160,6 +161,15 @@ export default function DonationCheckout() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 -ml-2 text-muted-foreground hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Donation Checkout</h1>
           <p className="text-muted-foreground mt-2">Complete your donation through Razorpay.</p>

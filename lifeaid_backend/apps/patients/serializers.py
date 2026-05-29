@@ -68,6 +68,8 @@ class PublicHelpRequestDetailSerializer(HelpRequestSerializer):
 
 
 class HelpRequestCreateSerializer(serializers.ModelSerializer):
+    document = serializers.FileField(required=True)
+
     class Meta:
         model = HelpRequest
         fields = [
@@ -81,6 +83,11 @@ class HelpRequestCreateSerializer(serializers.ModelSerializer):
             "document",
         ]
         read_only_fields = ["id"]
+
+    def validate_amount_required(self, value):
+        if value < 1000:
+            raise serializers.ValidationError("Minimum amount required for a help request is ₹1000.")
+        return value
 
     def create(self, validated_data):
         return HelpRequest.objects.create(patient=self.context["request"].user, **validated_data)
