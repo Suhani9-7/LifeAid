@@ -9,6 +9,7 @@ class HelpRequest(models.Model):
         LOW = "low", "Low"
         MEDIUM = "medium", "Medium"
         HIGH = "high", "High"
+        CRITICAL = "critical", "Critical"
 
     class StatusChoices(models.TextChoices):
         PENDING = "pending", "Pending"

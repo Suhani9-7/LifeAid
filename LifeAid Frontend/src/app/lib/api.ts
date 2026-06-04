@@ -37,6 +37,7 @@ export interface PublicStats {
 }
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+const DEBUG_MODE = import.meta.env.DEV
 
 class ApiError extends Error {
   status: number
@@ -104,13 +105,17 @@ async function apiFetch<T>(path: string, init: RequestInit = {}, authenticated =
         message = String(payload.detail)
       } else if ('message' in payload) {
         message = String(payload.message)
+      } else if ('reply' in payload && payload.status === 'error') {
+        message = String(payload.reply)
       } else {
         // Handle field-specific errors (common in 400 Bad Request)
         const fieldErrors = Object.entries(payload)
           .map(([field, errors]) => {
+            if (field === 'status') return null
             const errorText = Array.isArray(errors) ? errors.join(', ') : String(errors)
             return `${field}: ${errorText}`
           })
+          .filter(Boolean)
           .join('; ')
         if (fieldErrors) message = fieldErrors
       }
@@ -118,13 +123,10 @@ async function apiFetch<T>(path: string, init: RequestInit = {}, authenticated =
       message = payload
     }
 
-    console.error('API request failed:', {
-      method: init.method || 'GET',
-      path,
-      status: response.status,
-      payload,
-      message,
-    })
+    console.error(`[API Error] ${response.status} ${path}:`, message)
+    if (DEBUG_MODE) {
+      console.dir({ method: init.method || 'GET', path, status: response.status, payload })
+    }
 
     throw new ApiError(message, response.status)
   }

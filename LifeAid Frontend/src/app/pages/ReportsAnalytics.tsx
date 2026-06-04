@@ -15,22 +15,22 @@ import {
   Info
 } from 'lucide-react'
 import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Line, 
-  AreaChart, 
-  Area, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Legend,
-  ComposedChart
-} from 'recharts'
+   ResponsiveContainer, 
+   BarChart, 
+   Bar, 
+   XAxis, 
+   YAxis, 
+   CartesianGrid, 
+   Tooltip, 
+   AreaChart, 
+   Area, 
+   PieChart, 
+   Pie, 
+   Cell, 
+   Legend,
+   ComposedChart,
+   LabelList
+ } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
@@ -110,11 +110,23 @@ export default function ReportsAnalytics() {
 
         // Update Monthly Data
         if (reportsRes.donations?.monthly) {
-          const combined = reportsRes.donations.monthly.map((d: any, i: number) => ({
-            month: new Date(d.period).toLocaleString('en-US', { month: 'short' }),
-            amount: Number(d.total),
-            funded: reportsRes.cases?.monthly_funded?.[i]?.count || Math.floor(Math.random() * 10) + 10
+          const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const dataMap = new Map()
+          
+          reportsRes.donations.monthly.forEach((d: any, i: number) => {
+            const monthName = new Date(d.period).toLocaleString('en-US', { month: 'short' })
+            dataMap.set(monthName, {
+              amount: Number(d.total),
+              funded: reportsRes.cases?.monthly_funded?.[i]?.count || Math.floor(Math.random() * 5) + 5
+            })
+          })
+
+          const combined = allMonths.map(m => ({
+            month: m,
+            amount: dataMap.get(m)?.amount || 0,
+            funded: dataMap.get(m)?.funded || 0
           }))
+          
           setMonthlyData(combined)
         }
 
@@ -222,10 +234,24 @@ export default function ReportsAnalytics() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} dy={10} />
-                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(val) => `₹${val/1000}k`} domain={[0, 'auto']} />
-                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} domain={[0, 'auto']} />
+                  <XAxis 
+                    dataKey="month" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
+                    dy={10} 
+                  />
+                  <YAxis 
+                    yAxisId="left" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 11 }} 
+                    tickFormatter={(val) => `₹${val.toLocaleString('en-IN')}`} 
+                    domain={[0, 'auto']} 
+                    allowDecimals={false}
+                  />
                   <Tooltip 
+                    cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }}
                     contentStyle={{ 
                       borderRadius: '12px', 
                       border: 'none', 
@@ -235,10 +261,7 @@ export default function ReportsAnalytics() {
                     }}
                     labelStyle={{ color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}
                     itemStyle={{ color: '#e2e8f0', fontSize: 13 }}
-                    formatter={(value: number, name: string) => {
-                      if (name === 'Donations (₹)') return [`₹${Number(value).toLocaleString('en-IN')}`, 'Donations']
-                      return [`${value} cases`, 'Cases Funded']
-                    }}
+                    formatter={(value: number) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Donations']}
                   />
                   <Legend 
                     verticalAlign="top" 
@@ -253,19 +276,17 @@ export default function ReportsAnalytics() {
                     dataKey="amount" 
                     name="Donations (₹)" 
                     fill="url(#barGradient)" 
-                    radius={[8, 8, 0, 0]} 
-                    barSize={40}
-                  />
-                  <Line 
-                    yAxisId="right" 
-                    type="monotone" 
-                    dataKey="funded" 
-                    name="Cases Funded" 
-                    stroke="#10b981" 
-                    strokeWidth={3} 
-                    dot={{ r: 5, fill: '#10b981', strokeWidth: 3, stroke: '#ffffff' }} 
-                    activeDot={{ r: 7, stroke: '#10b981', strokeWidth: 2, fill: '#ffffff' }}
-                  />
+                    radius={[12, 12, 0, 0]} 
+                    barSize={42}
+                  >
+                    <LabelList 
+                      dataKey="amount" 
+                      position="top" 
+                      formatter={(val: number) => `₹${val.toLocaleString('en-IN')}`}
+                      style={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                      offset={10}
+                    />
+                  </Bar>
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

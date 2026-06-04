@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { HeartPulse, Upload, FileText, DollarSign, User, Settings, LogOut, Plus, CheckCircle, AlertCircle } from 'lucide-react'
+import { HeartPulse, Upload, FileText, DollarSign, User, Settings, LogOut, Plus, CheckCircle, AlertCircle, XCircle } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -10,33 +10,70 @@ import { Badge } from '../components/ui/badge'
 import { Progress } from '../components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Skeleton } from '../components/ui/skeleton'
-import { clearAuthSession, getCurrentUser, getDisplayName } from '../lib/auth'
-import { createPatientRequest, fetchPatientRequests, type MedicalCase } from '../lib/api'
+import { fetchPatientRequests, fetchProfile, createPatientRequest, updateProfile, type MedicalCase } from '../lib/api'
+import { clearAuthSession, getCurrentUser, getDisplayName, saveAuthSession, getAuthSession } from '../lib/auth'
 import NotificationButton from '../components/NotificationButton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { toast } from 'sonner'
 
 export default function PatientDashboard() {
+  const [user, setUser] = useState(getCurrentUser())
   const [formData, setFormData] = useState({
     diagnosis: '',
     story: '',
     targetAmount: '',
     category: '',
+    location: user?.address || '',
+    urgency: 'medium',
     document: null as File | null,
   })
   const [cases, setCases] = useState<MedicalCase[]>([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const user = getCurrentUser()
+  
+  const [isEditingLocation, setIsEditingLocation] = useState(false)
+  const [newLocation, setNewLocation] = useState(user?.address || '')
 
-  const loadCases = () => {
+  const handleUpdateLocation = async () => {
+    try {
+      const res = await updateProfile({ address: newLocation })
+      if (res.user) {
+        setUser(res.user)
+        const session = getAuthSession()
+        if (session) saveAuthSession({ ...session, user: res.user })
+        setIsEditingLocation(false)
+        toast.success('Location updated successfully')
+      }
+    } catch (err) {
+      toast.error('Failed to update location')
+    }
+  }
+
+  const loadData = async () => {
     setIsLoading(true)
-    return fetchPatientRequests()
-      .then(setCases)
-      .catch(() => setCases([]))
-      .finally(() => setIsLoading(false))
+    try {
+      const [casesRes, profileRes] = await Promise.all([
+        fetchPatientRequests().catch(() => []),
+        fetchProfile().catch(() => null)
+      ])
+      
+      setCases(casesRes)
+      
+      if (profileRes) {
+        setUser(profileRes)
+        setNewLocation(profileRes.address || '')
+        const session = getAuthSession()
+        if (session) {
+          saveAuthSession({ ...session, user: profileRes })
+        }
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
-    loadCases()
+    loadData()
   }, [])
 
   const userCase = cases[0]
@@ -44,19 +81,42 @@ export default function PatientDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    const payload = new FormData()
-    payload.append('title', formData.diagnosis)
-    payload.append('description', formData.story)
-    payload.append('illness_type', formData.category)
-    payload.append('amount_required', formData.targetAmount)
-    payload.append('location', user?.address || 'Location not provided')
-    payload.append('urgency', 'high')
-    if (formData.document) payload.append('document', formData.document)
 
     try {
-      await createPatientRequest(payload)
-      setFormData({ diagnosis: '', story: '', targetAmount: '', category: '', document: null })
-      await loadCases()
+      // 1. Update profile address if changed or provided
+      if (formData.location && formData.location !== user?.address) {
+        const updateRes = await updateProfile({ address: formData.location })
+        if (updateRes.user) {
+          setUser(updateRes.user)
+          const session = getAuthSession()
+          if (session) saveAuthSession({ ...session, user: updateRes.user })
+        }
+      }
+
+      // 2. Create help request
+      const payload = new FormData()
+      payload.append('title', formData.diagnosis)
+      payload.append('description', formData.story)
+      payload.append('illness_type', formData.category)
+      payload.append('amount_required', formData.targetAmount)
+      payload.append('location', formData.location || 'Location not provided')
+      payload.append('urgency', formData.urgency)
+
+      const response = await createPatientRequest(payload)
+      const requestId = (response as any).id
+      
+      setFormData({ 
+        diagnosis: '', 
+        story: '', 
+        targetAmount: '', 
+        category: '', 
+        location: formData.location, 
+        urgency: 'medium',
+        document: null 
+      })
+      await loadData()
+      toast.success('Medical request submitted successfully')
+      navigate(`/patient/upload-docs?request_id=${requestId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to submit request.')
     }
@@ -171,6 +231,7 @@ export default function PatientDashboard() {
                               {medicalCase.doctorName && <Badge className="bg-[#10b981] text-white"><CheckCircle className="h-3 w-3 mr-1" />Verified by Dr. {medicalCase.doctorName}</Badge>}
                               <Badge variant="destructive" className={medicalCase.urgency === 'high' ? 'bg-orange-500' : 'bg-yellow-500'}>{medicalCase.urgency.toUpperCase()}</Badge>
                             </div>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> {medicalCase.location}</p>
                           </div>
                           <div className="flex gap-2">
                             {!medicalCase.imageUrl && (
@@ -206,18 +267,30 @@ export default function PatientDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-          {/* ... existing TabsContent for new and profile ... */}
 
           <TabsContent value="new">
             <Card className="border-2">
               <CardHeader><CardTitle>Submit New Medical Help Request</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2"><Label htmlFor="diagnosis">Medical Diagnosis</Label><Input id="diagnosis" value={formData.diagnosis} onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })} required /></div>
-                  <div className="space-y-2"><Label htmlFor="category">Category</Label><Input id="category" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required /></div>
-                  <div className="space-y-2"><Label htmlFor="story">Your Story</Label><Textarea id="story" value={formData.story} onChange={(e) => setFormData({ ...formData, story: e.target.value })} className="min-h-32" required /></div>
-                  <div className="space-y-2"><Label htmlFor="targetAmount">Target Amount</Label><Input id="targetAmount" type="number" value={formData.targetAmount} onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })} required /></div>
-                  <div className="space-y-2"><Label htmlFor="documents">Medical Documents</Label><Input id="documents" name="documents" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFormData({ ...formData, document: e.target.files?.[0] || null })} /></div>
+                  <div className="space-y-2"><Label htmlFor="diagnosis">Medical Diagnosis</Label><Input id="diagnosis" value={formData.diagnosis} onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })} placeholder="E.g. Cardiac Surgery" required /></div>
+                  <div className="space-y-2"><Label htmlFor="category">Category</Label><Input id="category" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} placeholder="E.g. Surgery" required /></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="urgency">Urgency Level</Label>
+                    <Select value={formData.urgency} onValueChange={(value) => setFormData({ ...formData, urgency: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select urgency level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2"><Label htmlFor="location">Your Location</Label><Input id="location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="E.g. Mumbai, Maharashtra" required /></div>
+                  <div className="space-y-2"><Label htmlFor="story">Your Story</Label><Textarea id="story" value={formData.story} onChange={(e) => setFormData({ ...formData, story: e.target.value })} className="min-h-32" placeholder="Tell us about your situation..." required /></div>
+                  <div className="space-y-2"><Label htmlFor="targetAmount">Target Amount (INR)</Label><Input id="targetAmount" type="number" value={formData.targetAmount} onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })} placeholder="E.g. 500000" required /></div>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4"><p className="text-sm text-blue-900"><AlertCircle className="h-4 w-4 inline mr-2" />Your request will be reviewed by verified doctors before being published to donors.</p></div>
                   <Button type="submit" className="w-full bg-primary hover:bg-primary/90"><Plus className="h-4 w-4 mr-2" />Submit Request</Button>
                   {error && <p className="text-sm text-destructive">{error}</p>}
@@ -238,7 +311,24 @@ export default function PatientDashboard() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div><Label className="text-muted-foreground">Email</Label><p className="font-medium">{user?.email}</p></div>
                     <div><Label className="text-muted-foreground">Phone</Label><p className="font-medium">{user?.phone_number || 'Not provided'}</p></div>
-                    <div><Label className="text-muted-foreground">Location</Label><p className="font-medium">{user?.address || 'Not provided'}</p></div>
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">Location</Label>
+                      {isEditingLocation ? (
+                        <div className="flex gap-2">
+                          <Input value={newLocation} onChange={(e) => setNewLocation(e.target.value)} className="h-8" />
+                          <Button size="sm" onClick={handleUpdateLocation}>Save</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setIsEditingLocation(false)}><XCircle className="h-4 w-4" /></Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{user?.address || 'Not provided'}</p>
+                          <Button variant="link" size="sm" className="h-auto p-0" onClick={() => {
+                            setNewLocation(user?.address || '')
+                            setIsEditingLocation(true)
+                          }}>Edit</Button>
+                        </div>
+                      )}
+                    </div>
                     <div><Label className="text-muted-foreground">Verification</Label><p className="font-medium">{user?.is_verified ? 'Verified' : 'Pending'}</p></div>
                   </div>
                 </div>

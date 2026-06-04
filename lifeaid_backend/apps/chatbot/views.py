@@ -53,8 +53,11 @@ def chatbot_message(request):
     
     user_message = ' '.join(user_message.split())
     
-    # Check API key
-    if not hasattr(settings, 'GOOGLE_API_KEY') or not settings.GOOGLE_API_KEY:
+    # Check API keys (Prefer Groq, fallback to Gemini)
+    use_groq = bool(hasattr(settings, 'GROQ_API_KEY') and settings.GROQ_API_KEY)
+    use_gemini = bool(hasattr(settings, 'GOOGLE_API_KEY') and settings.GOOGLE_API_KEY)
+
+    if not use_groq and not use_gemini:
         return JsonResponse({
             'reply': "I'm currently offline for maintenance. Please contact support.",
             'status': 'error',
@@ -62,20 +65,52 @@ def chatbot_message(request):
     
     # Generate response
     try:
-        import google.genai as genai
-        
-        client = genai.Client(api_key=settings.GOOGLE_API_KEY)
-        
-        system_prompt = (
-            "You are the LifeAid Assistant, an AI supporting a medical donation platform. "
-            "Be helpful, empathetic, and concise. "
-            "Only discuss LifeAid-related topics. "
-            f"For urgent issues, contact support at {getattr(settings, 'SUPPORT_EMAIL', 'support@lifeaid.org')}."
-        )
-        
-        try:
+        if use_groq:
+            from groq import Groq
+            client = Groq(api_key=settings.GROQ_API_KEY)
+            
+            system_prompt = (
+                "You are the LifeAid Assistant, an AI supporting a medical donation platform. "
+                "Be helpful, empathetic, and concise. "
+                "Only discuss LifeAid-related topics. "
+                f"For urgent issues, contact support at {getattr(settings, 'SUPPORT_EMAIL', 'support@lifeaid.org')}."
+            )
+
+            try:
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message},
+                    ],
+                    max_tokens=500,
+                    temperature=0.7,
+                )
+                bot_reply = response.choices[0].message.content
+            except Exception as e:
+                error_msg = str(e)
+                print(f"Groq API Error: {error_msg}")
+                
+                if "429" in error_msg:
+                    return JsonResponse({
+                        'reply': "I'm a bit overwhelmed with requests right now. Please try again in a moment.",
+                        'status': 'error',
+                    }, status=429)
+                raise e # Let the outer block handle other errors or try fallback
+
+        elif use_gemini:
+            import google.genai as genai
+            client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+            
+            system_prompt = (
+                "You are the LifeAid Assistant, an AI supporting a medical donation platform. "
+                "Be helpful, empathetic, and concise. "
+                "Only discuss LifeAid-related topics. "
+                f"For urgent issues, contact support at {getattr(settings, 'SUPPORT_EMAIL', 'support@lifeaid.org')}."
+            )
+            
             response = client.models.generate_content(
-                model='gemini-flash-latest',
+                model='gemini-2.0-flash-lite',
                 contents=user_message,
                 config=genai.types.GenerateContentConfig(
                     max_output_tokens=500,
@@ -83,22 +118,8 @@ def chatbot_message(request):
                     system_instruction=system_prompt,
                 ),
             )
-        except Exception as e:
-            error_msg = str(e)
-            print(f"Gemini API Error: {error_msg}")
-            
-            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
-                return JsonResponse({
-                    'reply': "I'm a bit overwhelmed with requests right now. Please try again in a moment.",
-                    'status': 'error',
-                }, status=429)
-            
-            return JsonResponse({
-                'reply': "I'm having trouble processing that right now. Please try again later.",
-                'status': 'error',
-            }, status=500)
-        
-        bot_reply = response.text if hasattr(response, 'text') and response.text else "I'm not sure how to respond."
+            bot_reply = response.text if hasattr(response, 'text') and response.text else "I'm not sure how to respond."
+
         if len(bot_reply) > 2000:
             bot_reply = bot_reply[:2000] + "..."
         
@@ -112,20 +133,22 @@ def chatbot_message(request):
         
     except Exception as e:
         error_msg = str(e)
-        print(f"Gemini API Error: {error_msg}")
+        print(f"Chatbot API Error: {error_msg}")
         
         return JsonResponse({
             'reply': "I'm having trouble processing that right now. Please try again later.",
             'status': 'error',
+            'debug_error': error_msg if settings.DEBUG else None
         }, status=500)
 
 
 def chatbot_health(request):
-    has_api_key = bool(
-        hasattr(settings, 'GOOGLE_API_KEY') and settings.GOOGLE_API_KEY
-    )
+    has_groq = bool(hasattr(settings, 'GROQ_API_KEY') and settings.GROQ_API_KEY)
+    has_gemini = bool(hasattr(settings, 'GOOGLE_API_KEY') and settings.GOOGLE_API_KEY)
+    
     return JsonResponse({
-        'status': 'healthy' if has_api_key else 'degraded',
-        'api_configured': has_api_key,
+        'status': 'healthy' if (has_groq or has_gemini) else 'degraded',
+        'groq_configured': has_groq,
+        'gemini_configured': has_gemini,
         'timestamp': time.time(),
     })

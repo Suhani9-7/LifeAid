@@ -203,11 +203,16 @@ function getErrorMessage(error: string): string {
   if (error.includes('API Key') || error.includes('offline')) {
     return "I'm currently offline for maintenance. Please contact support at support@lifeaid.org or call our helpline."
   }
-  if (error.includes('rate limit') || error.includes('Too many')) {
-    return "You're sending messages too quickly. Please wait a moment and try again."
+  
+  if (error.includes('overwhelmed') || error.includes('quota') || error.includes('rate limit') || error.includes('Too many')) {
+    // If the error message from backend is already descriptive, we can use it, 
+    // but the fallback is safer for generic rate limit errors.
+    return error.length < 100 ? error : "The assistant is currently at capacity. Please try again in a minute."
   }
+
   if (error.includes('Network') || error.includes('fetch')) {
-    return "I'm having trouble connecting. Please check your internet connection and try again."
+    return "I'm having trouble connecting to LifeAid. Please check your internet connection and try again."
   }
-  return "I encountered an error processing your message. Please try again or contact support@lifeaid.org."
+
+  return error || "I encountered an error processing your message. Please try again or contact support@lifeaid.org."
 }

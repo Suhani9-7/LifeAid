@@ -7,8 +7,9 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
-import { createPatientRequest } from '../lib/api';
-import { getCurrentUser } from '../lib/auth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { createPatientRequest, updateProfile } from '../lib/api';
+import { getCurrentUser, getAuthSession, saveAuthSession } from '../lib/auth';
 
 export default function PatientOnboarding() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function PatientOnboarding() {
     location: '',
     targetAmount: '',
     category: '',
+    urgency: 'medium',
     medicalDocuments: [] as File[]
   });
 
@@ -49,29 +51,33 @@ export default function PatientOnboarding() {
 
     const user = getCurrentUser();
     
-    if (formData.medicalDocuments.length === 0) {
-      alert('Please upload at least one medical document.');
-      setStep(1);
-      return;
-    }
-
-    const payload = new FormData();
-    payload.append('title', formData.diagnosis);
-    payload.append('description', formData.description);
-    payload.append('illness_type', formData.category);
-    payload.append('amount_required', formData.targetAmount);
-    payload.append('location', formData.location || 'Location not provided');
-    payload.append('urgency', 'high');
-    payload.append('document', formData.medicalDocuments[0]);
-    
     try {
+      // 1. Update user profile with location
+      if (formData.location) {
+        const updateRes = await updateProfile({ address: formData.location });
+        const session = getAuthSession();
+        if (session && updateRes.user) {
+          saveAuthSession({ ...session, user: updateRes.user });
+        }
+      }
+
+      // 2. Create help request
+      const payload = new FormData();
+      payload.append('title', formData.diagnosis);
+      payload.append('description', formData.description);
+      payload.append('illness_type', formData.category);
+      payload.append('amount_required', formData.targetAmount);
+      payload.append('location', formData.location || 'Location not provided');
+      payload.append('urgency', formData.urgency);
+      if (formData.medicalDocuments.length > 0) {
+        payload.append('document', formData.medicalDocuments[0]);
+      }
+      
       const response = await createPatientRequest(payload);
-      // Assuming response contains the created request with an ID
       const requestId = (response as any).id;
       navigate(`/patient/upload-docs?request_id=${requestId}`);
     } catch (error) {
-      console.error('Failed to create request:', error);
-      // Handle error (maybe show a toast or message)
+      console.error('Failed to complete onboarding:', error);
     }
   };
 
@@ -151,6 +157,20 @@ export default function PatientOnboarding() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="urgency">Urgency Level *</Label>
+                    <Select value={formData.urgency} onValueChange={(value) => setFormData({ ...formData, urgency: value })}>
+                      <SelectTrigger className="bg-input-background">
+                        <SelectValue placeholder="Select urgency level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="location">Your Location *</Label>
                     <Input
                       id="location"
@@ -175,43 +195,6 @@ export default function PatientOnboarding() {
                     <p className="text-xs text-muted-foreground">
                       Be as detailed as possible to help doctors verify your case
                     </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="medicalDocuments">Upload Medical Documents (Reports, Bills) *</Label>
-                    <div className="flex items-center gap-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('medicalDocuments')?.click()}
-                        className="w-full h-24 border-dashed border-2 flex flex-col gap-2"
-                      >
-                        <Upload className="h-6 w-6 text-muted-foreground" />
-                        <span className="text-sm">
-                          {formData.medicalDocuments.length > 0 
-                            ? `${formData.medicalDocuments.length} file(s) selected` 
-                            : 'Click to upload medical documents'}
-                        </span>
-                      </Button>
-                      <input
-                        id="medicalDocuments"
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={handleFileChange}
-                        accept=".pdf,.jpg,.jpeg,.png"
-                      />
-                    </div>
-                    {formData.medicalDocuments.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {formData.medicalDocuments.map((file, index) => (
-                          <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <FileText className="h-3 w-3" />
-                            <span>{file.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

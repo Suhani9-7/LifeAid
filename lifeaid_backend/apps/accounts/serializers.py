@@ -104,7 +104,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         role = validated_data["role"]
         user = User.objects.create_user(
-            is_verified=role in [User.Roles.DONOR, User.Roles.PATIENT],
+            is_verified=False,
             **validated_data,
         )
 

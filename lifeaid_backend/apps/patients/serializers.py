@@ -68,7 +68,7 @@ class PublicHelpRequestDetailSerializer(HelpRequestSerializer):
 
 
 class HelpRequestCreateSerializer(serializers.ModelSerializer):
-    document = serializers.FileField(required=True)
+    document = serializers.FileField(required=False, allow_null=True)
 
     class Meta:
         model = HelpRequest
