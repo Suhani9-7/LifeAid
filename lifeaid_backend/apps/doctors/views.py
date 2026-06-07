@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import DoctorProfile
 from apps.doctors.serializers import DoctorVerifySerializer
-from apps.notifications.services import trigger_help_request_status_notification
+from apps.notifications.services import trigger_help_request_status_notification, notify_admins
 from apps.patients.models import HelpRequest
 from apps.patients.serializers import HelpRequestSerializer
 from common.permissions import IsApprovedDoctor, IsDoctor
@@ -61,6 +61,11 @@ class DoctorProfileUpsertView(generics.GenericAPIView):
             profile = serializer.save(user=request.user)
         else:
             profile = serializer.save()
+
+        notify_admins(
+            "New Doctor Profile Submitted",
+            f"Doctor {request.user.get_full_name() or request.user.username} has submitted/updated their profile for verification."
+        )
 
         return Response({
             "message": "Doctor profile submitted successfully.",

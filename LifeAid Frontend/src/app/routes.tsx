@@ -20,6 +20,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import AdminRequests from './pages/AdminRequests';
 import AdminDoctors from './pages/AdminDoctors';
+import AdminDonors from './pages/AdminDonors';
 import ReportsAnalytics from './pages/ReportsAnalytics';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -150,6 +151,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={['admin']}>
         <AdminDoctors />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/donors',
+    element: (
+      <ProtectedRoute allowedRoles={['admin']}>
+        <AdminDonors />
       </ProtectedRoute>
     ),
   },

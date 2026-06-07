@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from apps.donors.models import Donation
 from apps.donors.serializers import DonationHistorySerializer, InitiateDonationSerializer, VerifyDonationSerializer
-from apps.notifications.services import trigger_donation_confirmation_notification
+from apps.notifications.services import trigger_donation_confirmation_notification, notify_admins
 from apps.payments.services import create_razorpay_order, verify_and_capture_payment
 from apps.patients.models import HelpRequest
 from apps.patients.serializers import HelpRequestSerializer
@@ -89,6 +89,12 @@ class VerifyDonationView(generics.GenericAPIView):
         except ValueError as exc:
             raise ValidationError({"payment": str(exc)}) from exc
         trigger_donation_confirmation_notification(donation)
+        
+        notify_admins(
+            "New Donation Received",
+            f"A donation of INR {donation.amount} has been received from {donation.donor.get_full_name() or donation.donor.username} for request \"{donation.help_request.title}\"."
+        )
+
         return Response({
             "message": "Payment verified successfully.",
             "donation": DonationHistorySerializer(donation, context={"request": request}).data,

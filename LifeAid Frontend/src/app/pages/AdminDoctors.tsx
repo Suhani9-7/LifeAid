@@ -159,7 +159,6 @@ export default function AdminDoctors() {
                           <div className="space-y-2">
                             <p><span className="text-muted-foreground">Email:</span> {doctor.email}</p>
                             <p><span className="text-muted-foreground">Phone:</span> {doctor.phone_number}</p>
-                            <p><span className="text-muted-foreground">Address:</span> {doctor.address}</p>
                           </div>
                           <div className="space-y-2">
                             <p><span className="text-muted-foreground">Specialization:</span> {doctor.doctor_profile?.specialization}</p>

@@ -2,8 +2,11 @@ import os
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.contrib.auth import get_user_model
 
 from apps.notifications.models import Notification
+
+User = get_user_model()
 
 try:
     from twilio.rest import Client
@@ -37,6 +40,12 @@ def notify_user(user, subject, message):
     create_in_app_notification(user, message)
     send_email_notification(user, subject, message)
     send_sms_notification(user, message)
+
+
+def notify_admins(subject, message):
+    admins = User.objects.filter(role=User.Roles.ADMIN)
+    for admin in admins:
+        notify_user(admin, subject, message)
 
 
 def trigger_help_request_status_notification(help_request):

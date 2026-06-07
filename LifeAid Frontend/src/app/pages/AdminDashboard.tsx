@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { ShieldCheck, UserPlus, ClipboardList, BarChart3 } from 'lucide-react'
+import { ShieldCheck, UserPlus, ClipboardList, BarChart3, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -33,12 +33,6 @@ export default function AdminDashboard() {
               <UserPlus className="h-4 w-4" />
               Add user
             </Button>
-            <Link to="/admin/doctors">
-              <Button className="inline-flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" />
-                Manage doctors
-              </Button>
-            </Link>
           </div>
         </div>
 
@@ -111,8 +105,20 @@ export default function AdminDashboard() {
                   Review requests
                 </Button>
               </Link>
+              <Link to="/admin/doctors" className="block w-full">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white inline-flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  Manage doctors
+                </Button>
+              </Link>
+              <Link to="/admin/donors" className="block w-full">
+                <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-black inline-flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Manage donors
+                </Button>
+              </Link>
               <Link to="/reports" className="block w-full">
-                <Button className="w-full inline-flex items-center gap-2">
+                <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white inline-flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
                   View analytics
                 </Button>

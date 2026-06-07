@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from apps.notifications.models import Notification
 from apps.notifications.serializers import NotificationSerializer
-from apps.notifications.services import create_in_app_notification
+from apps.notifications.services import create_in_app_notification, notify_admins
 from apps.donors.models import Donation
 from apps.patients.models import HelpRequest
 from apps.patients.serializers import HelpRequestCreateSerializer, HelpRequestSerializer, PublicHelpRequestDetailSerializer
@@ -21,6 +21,10 @@ class CreateHelpRequestView(generics.CreateAPIView):
         create_in_app_notification(
             help_request.patient,
             f'Your help request "{help_request.title}" was submitted successfully and is awaiting doctor verification.',
+        )
+        notify_admins(
+            "New Help Request Submitted",
+            f'A new medical case "{help_request.title}" has been submitted by {help_request.patient.get_full_name() or help_request.patient.username}.'
         )
 
 
