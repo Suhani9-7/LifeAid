@@ -407,9 +407,23 @@ export async function fetchAdminUsers(role?: string) {
   return data.results.map(normalizeUser)
 }
 
-export async function approveUser(id: number) {
+export async function fetchAdminUserDetail(id: number) {
+  const data = await apiFetch<any>(`/api/admin/users/${id}/`, {}, true)
+  return {
+    ...normalizeUser(data),
+    donation_history: data.donation_history
+  }
+}
+
+export function approveUser(id: number) {
   return apiFetch<{ message: string }>(`/api/admin/users/${id}/approve/`, {
     method: 'PUT',
+  }, true)
+}
+
+export async function deleteUser(id: number) {
+  return apiFetch<{ message: string }>(`/api/admin/users/${id}/delete/`, {
+    method: 'DELETE',
   }, true)
 }
 

@@ -114,7 +114,7 @@ export default function AdminDashboard() {
               <Link to="/admin/donors" className="block w-full">
                 <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-black inline-flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Manage donors
+                  Manage donors and organizations
                 </Button>
               </Link>
               <Link to="/reports" className="block w-full">

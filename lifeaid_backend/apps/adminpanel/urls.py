@@ -4,6 +4,7 @@ from apps.adminpanel.views import (
     ActivityLogListView,
     AdminRequestListView,
     AdminUserListView,
+    AdminUserDetailView,
     ApproveRequestView,
     ApproveUserView,
     DeleteUserView,
@@ -12,6 +13,7 @@ from apps.adminpanel.views import (
 
 urlpatterns = [
     path("users/", AdminUserListView.as_view(), name="admin-users"),
+    path("users/<int:pk>/", AdminUserDetailView.as_view(), name="admin-user-detail"),
     path("users/<int:pk>/approve/", ApproveUserView.as_view(), name="admin-user-approve"),
     path("users/<int:pk>/delete/", DeleteUserView.as_view(), name="admin-user-delete"),
     path("requests/", AdminRequestListView.as_view(), name="admin-requests"),

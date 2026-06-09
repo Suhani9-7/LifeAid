@@ -12,6 +12,7 @@ from apps.adminpanel.models import ActivityLog
 from apps.adminpanel.serializers import ActivityLogSerializer
 from apps.adminpanel.services import log_admin_activity
 from apps.donors.models import Donation
+from apps.donors.serializers import DonationHistorySerializer
 from apps.notifications.services import trigger_help_request_status_notification
 from apps.patients.models import HelpRequest
 from apps.patients.serializers import HelpRequestSerializer
@@ -30,6 +31,22 @@ class AdminUserListView(generics.ListAPIView):
         if role:
             queryset = queryset.filter(role=role)
         return queryset
+
+
+class AdminUserDetailView(generics.RetrieveAPIView):
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAdmin]
+    queryset = User.objects.all()
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user_data = self.get_serializer(instance).data
+        
+        # Add donation history
+        donations = Donation.objects.filter(donor=instance, payment_status=Donation.PaymentStatus.SUCCESS)
+        user_data["donation_history"] = DonationHistorySerializer(donations, many=True).data
+        
+        return Response(user_data)
 
 
 class ApproveUserView(APIView):

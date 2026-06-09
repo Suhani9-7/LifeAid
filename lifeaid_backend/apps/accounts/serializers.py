@@ -25,6 +25,8 @@ class OrganizationProfileSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     doctor_profile = DoctorProfileSerializer(read_only=True)
     organization_profile = OrganizationProfileSerializer(read_only=True)
+    donation_count = serializers.SerializerMethodField()
+    total_donated = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -41,8 +43,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_verified",
             "doctor_profile",
             "organization_profile",
+            "donation_count",
+            "total_donated",
         ]
         read_only_fields = ["id", "role", "is_verified"]
+
+    def get_donation_count(self, obj):
+        return obj.donations.filter(payment_status="success").count()
+
+    def get_total_donated(self, obj):
+        from django.db.models import Sum
+        return obj.donations.filter(payment_status="success").aggregate(Sum("amount"))["amount__sum"] or 0
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -100,10 +111,17 @@ class RegisterSerializer(serializers.ModelSerializer):
             "registration_number": validated_data.pop("registration_number", None),
             "website": validated_data.pop("website", ""),
         }
-        validated_data.pop("confirm_password")
+        validated_data.pop("confirm_password", None)
 
-        role = validated_data["role"]
+        username = validated_data.pop("username")
+        email = validated_data.pop("email")
+        password = validated_data.pop("password")
+        role = validated_data.get("role")
+
         user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
             is_verified=False,
             **validated_data,
         )
