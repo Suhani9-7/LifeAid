@@ -64,8 +64,12 @@ def chatbot_message(request):
         }, status=503)
     
     # Generate response
-    try:
-        if use_groq:
+    bot_reply = None
+    last_error = None
+    
+    # Try Groq first
+    if use_groq:
+        try:
             from groq import Groq
             client = Groq(api_key=settings.GROQ_API_KEY)
             
@@ -76,29 +80,27 @@ def chatbot_message(request):
                 f"For urgent issues, contact support at {getattr(settings, 'SUPPORT_EMAIL', 'support@lifeaid.org')}."
             )
 
-            try:
-                response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_message},
-                    ],
-                    max_tokens=500,
-                    temperature=0.7,
-                )
-                bot_reply = response.choices[0].message.content
-            except Exception as e:
-                error_msg = str(e)
-                print(f"Groq API Error: {error_msg}")
-                
-                if "429" in error_msg:
-                    return JsonResponse({
-                        'reply': "I'm a bit overwhelmed with requests right now. Please try again in a moment.",
-                        'status': 'error',
-                    }, status=429)
-                raise e # Let the outer block handle other errors or try fallback
-
-        elif use_gemini:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                max_tokens=500,
+                temperature=0.7,
+            )
+            bot_reply = response.choices[0].message.content
+        except Exception as e:
+            last_error = str(e)
+            print(f"Groq API Error: {last_error}")
+            if "429" in last_error:
+                # If rate limited by Groq, we'll try Gemini next if available
+                pass
+            # Other errors will also fall back to Gemini
+    
+    # Try Gemini if Groq failed or wasn't used
+    if not bot_reply and use_gemini:
+        try:
             import google.genai as genai
             client = genai.Client(api_key=settings.GOOGLE_API_KEY)
             
@@ -109,8 +111,11 @@ def chatbot_message(request):
                 f"For urgent issues, contact support at {getattr(settings, 'SUPPORT_EMAIL', 'support@lifeaid.org')}."
             )
             
+            # Using a more standard model name if the previous one had issues
+            model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-flash-lite-latest')
+            
             response = client.models.generate_content(
-                model='gemini-2.0-flash-lite',
+                model=model_name,
                 contents=user_message,
                 config=genai.types.GenerateContentConfig(
                     max_output_tokens=500,
@@ -118,8 +123,15 @@ def chatbot_message(request):
                     system_instruction=system_prompt,
                 ),
             )
-            bot_reply = response.text if hasattr(response, 'text') and response.text else "I'm not sure how to respond."
+            if hasattr(response, 'text') and response.text:
+                bot_reply = response.text
+            else:
+                last_error = "Gemini returned empty response"
+        except Exception as e:
+            last_error = str(e)
+            print(f"Gemini API Error: {last_error}")
 
+    if bot_reply:
         if len(bot_reply) > 2000:
             bot_reply = bot_reply[:2000] + "..."
         
@@ -130,15 +142,18 @@ def chatbot_message(request):
             'status': 'success',
             'duration_ms': duration_ms,
         })
-        
-    except Exception as e:
-        error_msg = str(e)
-        print(f"Chatbot API Error: {error_msg}")
+    else:
+        # Both failed or weren't available
+        if last_error and "429" in last_error:
+            return JsonResponse({
+                'reply': "I'm a bit overwhelmed with requests right now. Please try again in a moment.",
+                'status': 'error',
+            }, status=429)
         
         return JsonResponse({
             'reply': "I'm having trouble processing that right now. Please try again later.",
             'status': 'error',
-            'debug_error': error_msg if settings.DEBUG else None
+            'debug_error': last_error if settings.DEBUG else None
         }, status=500)
 
 
